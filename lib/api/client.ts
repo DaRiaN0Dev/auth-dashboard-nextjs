@@ -9,7 +9,8 @@ interface RequestConfig {
   credentials?: RequestCredentials;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "https://auth-dashboard-mu.vercel.app";
 
 let isRefreshing = false;
 let refreshSubscribers: ((token: string | null) => void)[] = [];
