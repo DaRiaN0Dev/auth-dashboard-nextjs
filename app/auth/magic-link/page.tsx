@@ -1,55 +1,31 @@
-import { CheckCircle2, MailCheck, TriangleAlert } from "lucide-react";
+"use client";
 
-import { StatusPanel } from "@/components/auth/status-panel";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { AuthHeader } from "@/components/auth/auth-header";
 import { AUTH_ROUTES } from "@/constants/auth";
 
-interface MagicLinkPageProps {
-  searchParams: Promise<{ status?: string }>;
-}
-
-export default async function MagicLinkPage({
-  searchParams,
-}: MagicLinkPageProps) {
-  const params = await searchParams;
-  const status = params.status ?? "waiting";
-
-  if (status === "success") {
-    return (
-      <StatusPanel
-        icon={CheckCircle2}
-        title="Magic link confirmed"
-        description="Your identity has been verified. You can continue to your secure workspace."
-        ctaLabel="Continue to workspace"
-        ctaHref="/"
-        secondaryHref={AUTH_ROUTES.signIn}
-        secondaryLabel="Back to sign in"
-      />
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <StatusPanel
-        icon={TriangleAlert}
-        title="Link expired or invalid"
-        description="This sign-in link is no longer valid. Request a new magic link and try again."
-        ctaLabel="Request new link"
-        ctaHref={AUTH_ROUTES.signIn}
-        secondaryHref={AUTH_ROUTES.forgotPassword}
-        secondaryLabel="Need help?"
-      />
-    );
-  }
-
+export default function MagicLinkPage() {
   return (
-    <StatusPanel
-      icon={MailCheck}
-      title="Check your email"
-      description="We sent a secure magic link. Open your email and click the link to finish signing in."
-      ctaLabel="I opened the link"
-      ctaHref={`${AUTH_ROUTES.magicLink}?status=success`}
-      secondaryHref={AUTH_ROUTES.signIn}
-      secondaryLabel="Use password instead"
-    />
+    <Card>
+      <AuthHeader
+        title="Magic link login"
+        description="This feature is not available."
+        backlinkHref={AUTH_ROUTES.signIn}
+        backlinkLabel="Back to sign in"
+      />
+      <Alert variant="error">
+        Magic link authentication is not currently supported. Please sign in
+        using your email and password.
+      </Alert>
+      <Button
+        type="button"
+        className="w-full"
+        onClick={() => (window.location.href = AUTH_ROUTES.signIn)}
+      >
+        Back to sign in
+      </Button>
+    </Card>
   );
 }

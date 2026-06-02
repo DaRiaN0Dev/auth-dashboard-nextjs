@@ -38,7 +38,6 @@ export default function SignInPage() {
     try {
       const result = await signIn(values);
       if (result.next === "verify-email") router.push(AUTH_ROUTES.verifyEmail);
-      else if (result.next === "two-factor") router.push(AUTH_ROUTES.twoFactor);
       else {
         setSuccess("Sign in successful. Redirecting...");
         router.push("/");
@@ -95,14 +94,6 @@ export default function SignInPage() {
         {success ? <Alert variant="success">{success}</Alert> : null}
         <Button type="submit" loading={submitting} className="w-full">
           Continue
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full"
-          onClick={() => router.push(AUTH_ROUTES.magicLink)}
-        >
-          Sign in with magic link
         </Button>
         <p className="text-muted text-center text-sm leading-6 text-balance">
           New to the platform?{" "}

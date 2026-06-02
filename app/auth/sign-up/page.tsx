@@ -45,7 +45,8 @@ export default function SignUpPage() {
     setSuccess(null);
     setLoading(true);
     try {
-      await signUp(values);
+      const { confirmPassword, acceptedTerms, ...apiPayload } = values;
+      await signUp(apiPayload);
       setSuccess("Account created. Verify your email to continue.");
       router.push(AUTH_ROUTES.verifyEmail);
     } finally {

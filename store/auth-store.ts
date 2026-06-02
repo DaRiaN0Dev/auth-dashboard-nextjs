@@ -5,11 +5,11 @@ import { create } from "zustand";
 import type {
   AuthState,
   ForgotPasswordPayload,
-  OtpPayload,
   ResetPasswordPayload,
   Session,
   SignInPayload,
   SignUpPayload,
+  VerifyEmailPayload,
 } from "@/types/auth";
 
 import { authService } from "@/features/auth/auth.service";
@@ -17,18 +17,14 @@ import { tokenManager } from "@/lib/auth/token-manager";
 import { ApiError } from "@/types/api";
 
 interface AuthStore extends AuthState {
-  hydrateSession: () => void;
+  hydrateSession: () => Promise<void>;
   setSession: (session: Session | null) => void;
-  signIn: (
-    payload: SignInPayload,
-  ) => Promise<{ next: "app" | "two-factor" | "verify-email" }>;
+  signIn: (payload: SignInPayload) => Promise<{ next: "app" | "verify-email" }>;
   signUp: (payload: SignUpPayload) => Promise<void>;
-  verifyEmail: (payload: OtpPayload) => Promise<void>;
+  verifyEmail: (payload: VerifyEmailPayload) => Promise<void>;
   forgotPassword: (payload: ForgotPasswordPayload) => Promise<void>;
   resetPassword: (payload: ResetPasswordPayload) => Promise<void>;
-  verifyTwoFactor: (payload: OtpPayload) => Promise<void>;
-  verifyRecoveryCode: (code: string) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -42,7 +38,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   session: null,
   status: "idle",
   error: null,
-  hydrateSession: () => {
+  hydrateSession: async () => {
     const tokens = tokenManager.get();
 
     if (!tokens) {
@@ -50,22 +46,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return;
     }
 
-    set({
-      status: "authenticated",
-      session: {
-        createdAt: Date.now(),
-        tokens,
-        user: {
-          id: "persisted-user",
-          firstName: "Current",
-          lastName: "User",
-          email: "current@company.com",
-          emailVerified: true,
-          role: "member",
-          twoFactorEnabled: true,
-        },
-      },
-    });
+    try {
+      const session = await authService.getCurrentUser();
+      tokenManager.set(session.tokens);
+      set({ session, status: "authenticated" });
+    } catch {
+      tokenManager.clear();
+      set({ session: null, status: "unauthenticated" });
+    }
   },
   setSession: (session) => {
     if (session) tokenManager.set(session.tokens);
@@ -85,10 +73,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (result.requiresEmailVerification) {
         set({ status: "unauthenticated" });
         return { next: "verify-email" };
-      }
-      if (result.requiresTwoFactor) {
-        set({ status: "unauthenticated" });
-        return { next: "two-factor" };
       }
       if (result.session) {
         tokenManager.set(result.session.tokens);
@@ -151,37 +135,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
       throw error;
     }
   },
-  verifyTwoFactor: async (payload) => {
-    set({ status: "loading", error: null });
-
-    try {
-      const result = await authService.verifyTwoFactor(payload);
-
-      if (result.session) {
-        tokenManager.set(result.session.tokens);
-        set({ session: result.session, status: "authenticated" });
+  signOut: async () => {
+    const tokens = tokenManager.get();
+    if (tokens?.refreshToken) {
+      try {
+        await authService.logout(tokens.refreshToken);
+      } catch {
       }
-    } catch (error) {
-      set({ status: "unauthenticated", error: getErrorMessage(error) });
-      throw error;
     }
-  },
-  verifyRecoveryCode: async (code) => {
-    set({ status: "loading", error: null });
-
-    try {
-      const result = await authService.verifyRecoveryCode(code);
-
-      if (result.session) {
-        tokenManager.set(result.session.tokens);
-        set({ session: result.session, status: "authenticated" });
-      }
-    } catch (error) {
-      set({ status: "unauthenticated", error: getErrorMessage(error) });
-      throw error;
-    }
-  },
-  signOut: () => {
     tokenManager.clear();
     set({ session: null, status: "unauthenticated", error: null });
   },

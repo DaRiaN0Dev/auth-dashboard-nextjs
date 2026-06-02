@@ -2,74 +2,129 @@ import { request } from "@/lib/api/client";
 import type {
   AuthResult,
   ForgotPasswordPayload,
-  OtpPayload,
   ResetPasswordPayload,
   Session,
   SignInPayload,
   SignUpPayload,
+  VerifyEmailPayload,
 } from "@/types/auth";
 
-function createSession(
-  email: string,
-  firstName = "Alex",
-  lastName = "Taylor",
-): Session {
-  const now = Date.now();
+interface BackendSignInResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    emailVerified: boolean;
+    role: string;
+  };
+}
+
+interface BackendUserResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  emailVerified: boolean;
+  role: string;
+}
+
+function mapBackendSession(data: BackendSignInResponse): Session {
+  const validRoles = ["admin", "member", "owner", "viewer"] as const;
+  const role = validRoles.includes(data.user.role as any)
+    ? (data.user.role as "admin" | "member" | "owner" | "viewer")
+    : "member";
+
   return {
-    createdAt: now,
+    createdAt: Date.now(),
     user: {
-      id: crypto.randomUUID(),
-      firstName,
-      lastName,
-      email,
-      emailVerified: true,
-      role: "member",
-      twoFactorEnabled: true,
+      id: data.user.id,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      email: data.user.email,
+      emailVerified: data.user.emailVerified,
+      role,
     },
     tokens: {
-      accessToken: `acc_${Math.random().toString(36).slice(2)}`,
-      refreshToken: `ref_${Math.random().toString(36).slice(2)}`,
-      expiresAt: now + 1000 * 60 * 20,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresAt: data.expiresAt,
     },
   };
 }
 
 export const authService = {
   async signIn(payload: SignInPayload): Promise<AuthResult> {
-    await request<SignInPayload>("/sign-in", { body: payload });
-    if (payload.email.endsWith("@unverified.com")) {
-      return { requiresEmailVerification: true };
-    }
-    if (payload.email.endsWith("@2fa.com")) {
-      return { requiresTwoFactor: true };
-    }
-    return { session: createSession(payload.email) };
+    const { data } = await request<BackendSignInResponse>("/auth/sign-in", {
+      method: "POST",
+      body: payload,
+    });
+    return { session: mapBackendSession(data) };
   },
+
   async signUp(payload: SignUpPayload): Promise<AuthResult> {
-    await request<SignUpPayload>("/sign-up", { body: payload });
+    await request<void>("/auth/sign-up", {
+      method: "POST",
+      body: payload,
+    });
     return { requiresEmailVerification: true };
   },
-  async verifyEmail(payload: OtpPayload): Promise<AuthResult> {
-    await request<OtpPayload>("/verify-email", { body: payload });
-    return { session: createSession("verified@company.com") };
+
+  async verifyEmail(payload: VerifyEmailPayload): Promise<AuthResult> {
+    const { data } = await request<BackendSignInResponse>("/auth/verify-email", {
+      method: "POST",
+      body: payload,
+    });
+    return { session: mapBackendSession(data) };
   },
-  async resendVerificationCode(email: string) {
-    await request<{ email: string }>("/verify-email/resend", {
-      body: { email },
+
+  async sendVerificationEmail(): Promise<void> {
+    await request<void>("/auth/send-verification-email", {
+      method: "POST",
     });
   },
-  async forgotPassword(payload: ForgotPasswordPayload) {
-    await request<ForgotPasswordPayload>("/forgot-password", { body: payload });
+
+  async forgotPassword(payload: ForgotPasswordPayload): Promise<void> {
+    await request<void>("/auth/forgot-password", {
+      method: "POST",
+      body: payload,
+    });
   },
-  async resetPassword(payload: ResetPasswordPayload) {
-    await request<ResetPasswordPayload>("/reset-password", { body: payload });
+
+  async resetPassword(payload: ResetPasswordPayload): Promise<void> {
+    await request<void>("/auth/reset-password", {
+      method: "POST",
+      body: payload,
+    });
   },
-  async verifyTwoFactor(payload: OtpPayload): Promise<AuthResult> {
-    await request<OtpPayload>("/two-factor/verify", { body: payload });
-    return { session: createSession("member@company.com") };
+
+  async getCurrentUser(): Promise<Session> {
+    const { data } = await request<BackendSignInResponse>("/auth/me", {
+      method: "GET",
+    });
+    return mapBackendSession(data);
   },
-  async verifyRecoveryCode(code: string): Promise<AuthResult> {
-    await request<{ code: string }>("/two-factor/recovery", { body: { code } });
-    return { session: createSession("member@company.com") };
+
+  async logout(refreshToken: string): Promise<void> {
+    await request<void>("/auth/logout", {
+      method: "POST",
+      body: { refreshToken },
+    });
+  },
+
+  async logoutAll(): Promise<void> {
+    await request<void>("/auth/logout-all", {
+      method: "POST",
+    });
+  },
+
+  async getSessions(): Promise<BackendUserResponse[]> {
+    const { data } = await request<BackendUserResponse[]>("/auth/sessions", {
+      method: "GET",
+    });
+    return data;
   },
 };

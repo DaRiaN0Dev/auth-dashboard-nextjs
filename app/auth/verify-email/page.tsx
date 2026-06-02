@@ -1,38 +1,39 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 import { AuthHeader } from "@/components/auth/auth-header";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { OTPInput } from "@/components/ui/otp-input";
-import { AUTH_ROUTES, RESEND_SECONDS } from "@/constants/auth";
-import { otpSchema, type OtpFormValues } from "@/schemas/auth";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { AUTH_ROUTES } from "@/constants/auth";
+import { z } from "zod";
 import { useAuthStore } from "@/store/auth-store";
+
+const verifyEmailSchema = z.object({
+  token: z.string().min(1, "Verification token is required"),
+});
+
+type VerifyEmailFormValues = z.infer<typeof verifyEmailSchema>;
 
 export default function VerifyEmailPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const verifyEmail = useAuthStore((state) => state.verifyEmail);
-  const [timer, setTimer] = useState(RESEND_SECONDS);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const form = useForm<OtpFormValues>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: { code: "" },
+  const form = useForm<VerifyEmailFormValues>({
+    resolver: zodResolver(verifyEmailSchema),
+    defaultValues: { token: searchParams.get("token") || "" },
   });
 
-  useEffect(() => {
-    if (timer <= 0) return;
-    const id = setInterval(() => setTimer((prev) => prev - 1), 1000);
-    return () => clearInterval(id);
-  }, [timer]);
-
-  async function onSubmit(values: OtpFormValues) {
+  async function onSubmit(values: VerifyEmailFormValues) {
     setLoading(true);
     setMessage(null);
     try {
@@ -48,7 +49,7 @@ export default function VerifyEmailPage() {
     <Card>
       <AuthHeader
         title="Verify email"
-        description="Enter the 6-digit code sent to your inbox."
+        description="Enter the verification token from your email."
         backlinkHref={AUTH_ROUTES.signIn}
         backlinkLabel="Back to sign in"
       />
@@ -57,28 +58,20 @@ export default function VerifyEmailPage() {
         onSubmit={form.handleSubmit(onSubmit)}
         noValidate
       >
-        <Controller
-          control={form.control}
-          name="code"
-          render={({ field }) => (
-            <OTPInput value={field.value} onChange={field.onChange} />
-          )}
-        />
-        {form.formState.errors.code ? (
-          <Alert variant="error">{form.formState.errors.code.message}</Alert>
-        ) : null}
+        <FormField
+          label="Verification token"
+          htmlFor="token"
+          error={form.formState.errors.token?.message}
+        >
+          <Input
+            id="token"
+            placeholder="Enter your verification token"
+            {...form.register("token")}
+          />
+        </FormField>
         {message ? <Alert variant="success">{message}</Alert> : null}
         <Button type="submit" className="w-full" loading={loading}>
           Verify email
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full"
-          disabled={timer > 0}
-          onClick={() => setTimer(RESEND_SECONDS)}
-        >
-          {timer > 0 ? `Resend in ${timer}s` : "Resend code"}
         </Button>
       </form>
     </Card>

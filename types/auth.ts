@@ -7,7 +7,6 @@ export interface UserProfile {
   email: string;
   emailVerified: boolean;
   role: UserRole;
-  twoFactorEnabled: boolean;
 }
 
 export interface TokenSet {
@@ -25,7 +24,6 @@ export interface Session {
 export interface SignInPayload {
   email: string;
   password: string;
-  rememberMe: boolean;
 }
 
 export interface SignUpPayload {
@@ -33,12 +31,10 @@ export interface SignUpPayload {
   lastName: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  acceptedTerms: boolean;
 }
 
-export interface OtpPayload {
-  code: string;
+export interface VerifyEmailPayload {
+  token: string;
 }
 
 export interface ForgotPasswordPayload {
@@ -48,12 +44,10 @@ export interface ForgotPasswordPayload {
 export interface ResetPasswordPayload {
   token: string;
   password: string;
-  confirmPassword: string;
 }
 
 export interface AuthResult {
   requiresEmailVerification?: boolean;
-  requiresTwoFactor?: boolean;
   session?: Session;
 }
 

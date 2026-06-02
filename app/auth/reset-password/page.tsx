@@ -23,9 +23,26 @@ import { useAuthStore } from "@/store/auth-store";
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
   const resetPassword = useAuthStore((state) => state.resetPassword);
-  const token = searchParams.get("token") ?? "default-reset-token";
+  const token = searchParams.get("token");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!token) {
+    return (
+      <Card>
+        <AuthHeader
+          title="Invalid reset link"
+          description="This password reset link is invalid or has expired."
+          backlinkHref="/auth/sign-in"
+          backlinkLabel="Back to sign in"
+        />
+        <Alert variant="error">
+          Missing reset token. Please request a new password reset link.
+        </Alert>
+      </Card>
+    );
+  }
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -34,9 +51,13 @@ export default function ResetPasswordPage() {
 
   async function onSubmit(values: ResetPasswordFormValues) {
     setLoading(true);
+    setError(null);
     try {
-      await resetPassword(values);
+      const { confirmPassword, ...apiPayload } = values;
+      await resetPassword(apiPayload);
       setSuccess(true);
+    } catch (err) {
+      setError("Failed to reset password. Please try again.");
     } finally {
       setLoading(false);
     }
