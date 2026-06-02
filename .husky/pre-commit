@@ -1,0 +1,3 @@
+npm run lint
+npm run spell
+npm run format
