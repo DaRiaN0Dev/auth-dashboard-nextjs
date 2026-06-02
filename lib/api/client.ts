@@ -12,7 +12,7 @@ interface RequestConfig {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 let isRefreshing = false;
-let refreshSubscribers: Array<(token: string | null) => void> = [];
+let refreshSubscribers: ((token: string | null) => void)[] = [];
 
 function subscribeToRefresh(callback: (token: string | null) => void) {
   refreshSubscribers.push(callback);
@@ -116,7 +116,11 @@ export async function request<T>(
     credentials: credentials || "include",
   });
 
-  if (response.status === 401 && tokens?.refreshToken && !path.includes("/auth/refresh")) {
+  if (
+    response.status === 401 &&
+    tokens?.refreshToken &&
+    !path.includes("/auth/refresh")
+  ) {
     if (!isRefreshing) {
       isRefreshing = true;
       const newToken = await refreshAccessToken();
@@ -133,10 +137,16 @@ export async function request<T>(
         });
       } else {
         tokenManager.clear();
+
         if (typeof window !== "undefined") {
           window.location.href = "/auth/sign-in";
         }
-        throw createApiError("Session expired. Please sign in again.", 401, "SESSION_EXPIRED");
+
+        throw createApiError(
+          "Session expired. Please sign in again.",
+          401,
+          "SESSION_EXPIRED",
+        );
       }
     } else {
       await new Promise((resolve) => {
@@ -144,6 +154,7 @@ export async function request<T>(
           if (token) {
             headers["Authorization"] = `Bearer ${token}`;
           }
+
           resolve(undefined);
         });
       });
