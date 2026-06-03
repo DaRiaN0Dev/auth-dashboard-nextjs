@@ -25,8 +25,10 @@ export default function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const verifyEmail = useAuthStore((state) => state.verifyEmail);
+  const error = useAuthStore((state) => state.error);
+  const clearError = useAuthStore((state) => state.clearError);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const form = useForm<VerifyEmailFormValues>({
     resolver: zodResolver(verifyEmailSchema),
@@ -34,14 +36,17 @@ export default function VerifyEmailPage() {
   });
 
   async function onSubmit(values: VerifyEmailFormValues) {
+    clearError();
+    setSuccess(null);
     setLoading(true);
-    setMessage(null);
     try {
       await verifyEmail(values);
-      setMessage("Email verified successfully.");
+      setSuccess("Email verified successfully. Signing you in...");
       setTimeout(() => {
         router.push("/");
-      }, 2000);
+      }, 1500);
+    } catch {
+      // Error is already set in auth store
     } finally {
       setLoading(false);
     }
@@ -71,7 +76,8 @@ export default function VerifyEmailPage() {
             {...form.register("token")}
           />
         </FormField>
-        {message ? <Alert variant="success">{message}</Alert> : null}
+        {error ? <Alert variant="error">{error}</Alert> : null}
+        {success ? <Alert variant="success">{success}</Alert> : null}
         <Button type="submit" className="w-full" loading={loading}>
           Verify email
         </Button>
