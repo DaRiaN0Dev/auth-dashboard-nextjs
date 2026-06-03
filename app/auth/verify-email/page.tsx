@@ -41,9 +41,9 @@ export default function VerifyEmailPage() {
     setLoading(true);
     try {
       await verifyEmail(values);
-      setSuccess("Email verified successfully. Signing you in...");
+      setSuccess("Email verified successfully.");
       setTimeout(() => {
-        router.push("/");
+        router.push(AUTH_ROUTES.signIn);
       }, 1500);
     } catch {
       // Error is already set in auth store

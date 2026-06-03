@@ -100,14 +100,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ status: "loading", error: null });
 
     try {
-      const result = await authService.verifyEmail(payload);
-
-      if (result.session) {
-        tokenManager.set(result.session.tokens);
-        set({ session: result.session, status: "authenticated" });
-      } else {
-        set({ status: "unauthenticated" });
-      }
+      await authService.verifyEmail(payload);
+      set({ status: "unauthenticated" });
     } catch (error) {
       set({ status: "unauthenticated", error: getErrorMessage(error) });
       throw error;

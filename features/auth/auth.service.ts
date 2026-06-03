@@ -75,11 +75,11 @@ export const authService = {
   },
 
   async verifyEmail(payload: VerifyEmailPayload): Promise<AuthResult> {
-    const { data } = await request<BackendSignInResponse>("/auth/verify-email", {
+    await request<{ success: boolean }>("/auth/verify-email", {
       method: "POST",
       body: payload,
     });
-    return { session: mapBackendSession(data) };
+    return {};
   },
 
   async sendVerificationEmail(): Promise<void> {
