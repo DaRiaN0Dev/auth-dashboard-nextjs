@@ -58,9 +58,10 @@ function mapBackendSession(data: BackendSignInResponse): Session {
 
 export const authService = {
   async signIn(payload: SignInPayload): Promise<AuthResult> {
+    const { email, password } = payload;
     const { data } = await request<BackendSignInResponse>("/auth/sign-in", {
       method: "POST",
-      body: payload,
+      body: { email, password },
     });
     return { session: mapBackendSession(data) };
   },

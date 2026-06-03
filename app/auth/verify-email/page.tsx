@@ -39,7 +39,9 @@ export default function VerifyEmailPage() {
     try {
       await verifyEmail(values);
       setMessage("Email verified successfully.");
-      router.push("/");
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
     } finally {
       setLoading(false);
     }
