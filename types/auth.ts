@@ -24,6 +24,7 @@ export interface Session {
 export interface SignInPayload {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface SignUpPayload {
